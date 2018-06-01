@@ -24,22 +24,36 @@ def loadDataInfo():
 def pocket():
     pass
 
+def StartRandom():
+    return np.random.rand(1)
+
 def PLA(data,label):
     w = np.array([.0,.0,.0,.0,.0])
     trainNum = 0
     correctNum = 0
-
     data = np.insert(data,4, [1],  axis=1)
-    while (1):
-        for i in range(len(data)):
-            if  np.dot(w, data[i]) * label[i] <= 0:
-                w = w + data[i] * label[i]
-                trainNum += 1
-                correctNum = 0
-            else:
-                correctNum += 1
 
-        print (trainNum,correctNum)
+    experimentNum = 0
+    trainSum = 0
+    for i in range(2000):
+        random = StartRandom()
+        experimentNum += 1
+        while (1):
+            errorNum = 0
+            for i in range(len(data)):
+                i = (i + int(round(random[0] * len(data),0))) % len(data)
+                if  np.dot(w, data[i]) * label[i] <= 0:
+                    w = w + data[i] * label[i]
+                    trainNum += 1
+                    correctNum = 0
+                    errorNum += 1
+                else:
+                    correctNum += 1
+            if 0 == errorNum:
+                break
+        trainSum += trainNum
+        print (random,trainNum,correctNum)
+    print (trainSum / experimentNum)
 
 
 if  __name__ == "__main__":
