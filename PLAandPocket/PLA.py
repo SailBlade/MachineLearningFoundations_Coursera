@@ -1,15 +1,14 @@
 import numpy as np
 
 
-
-def loadDataInfo(file):
+def LoadDataInfo(file):
     data = []
     label = []
     lineNum = 0
     with open(file) as f:
         line = f.readline()
         while line:
-            lineArray = line.split() # type list
+            lineArray = line.split()
             for i in range(len(lineArray) - 1):
                 data.append(float(lineArray[i]))
             label.append(int(lineArray[4]))
@@ -21,95 +20,59 @@ def loadDataInfo(file):
     labelArray = np.array(label)
     return dataArray,labelArray
 
-
-def TestPacket(TestData,TestLabel,weight):
-    errorNum = 0
-    correctNum = 0
-    TestData = np.insert(TestData, 4, [1], axis=1)  # insert x0 column
-    for i in range(len(TestData)):
-        if np.dot(weight, TestData[i]) * TestLabel[i] <= 0:
-            errorNum += 1
-        else:
-            correctNum += 1
-    print ('Test result : correct num is %d, error num is %d, error rate is %f'
-              % (correctNum,errorNum,errorNum / (correctNum + errorNum)))
-
-
 def sign(x):
     if x <= 0:
         return -1
     return 1
 
-def errorRate(data,label,w):
+def TestPacket(TestData,TestLabel,weight):
+    errorCount = 0
+    sumCount = 0
+    TestData = np.insert(TestData, 4, [1], axis=1)  # insert x0 column
+    for i in range(len(TestData)):
+        sumCount += 1
+        if sign(np.dot(weight, TestData[i])) != TestLabel[i]:
+            errorCount += 1
+    print ('Test result : sum num is %d, error rate is %f' % (sumCount,errorCount / sumCount))
+    return errorCount / sumCount
+
+def errorRateWithW(data, label, W):
     error = 0
     for i in range(len(data)):
-        if sign(np.dot(w, data[i])) != label[i]:
+        if sign(np.dot(W, data[i])) != label[i]:
             error += 1
     return error / len(data)
 
-def TrainPacket(data,label):
+def GetRandomStartLoc(arrayLen,randomSeed):
+    np.random.seed(randomSeed)
+    return np.random.random_integers(0,arrayLen - 1)
+
+def TrainPacketInQ18(data, label, updateCount=100):
     """
         pocket algorithm, this can classify two types.
     :return:
         weight about classification
     """
-    data = np.insert(data, 0, [1], axis=1) # insert x0 column
+    data = np.insert(data, 4, [1], axis=1) # insert x0 column
+    loopCount = 0
 
-    batchNum = 0
-    trainSum = 0
+    data, label = Shuffle2ArrayMeanwhile(data, label, loop)
+    loopCount += 1
+    seed = 0
+    w = np.array([.0, .0, .0, .0, .0])
+    error_w = errorRateWithW(data,label,w)
+    for loopUpdate in range(updateCount):
+        seed = seed + 1
+        for loopi in range(len(data)):
+            index = GetRandomStartLoc(len(data),seed * len(data) + loopi)
+            if sign(np.dot(w, data[index])) !=  label[index]:
+                w = w + data[index] * label[index]
+                error_tryW = errorRateWithW(data, label, w)
+                if (error_tryW < error_w):
+                    error_w = error_tryW
+                    w_pocket = w
+    return w_pocket
 
-    for loop in range(2000):
-        w = np.array([.0, .0, .0, .0,.0])
-        #data, label = Shuffle2ArrayMeanwhile(data, label, loop)
-        batchNum += 1
-        trainNum = 0
-        seed = 0
-
-        error_w = errorRate(data,label,w)
-
-        IsFinished = False
-
-        while (1):
-            seed = seed + 1
-            np.random.seed(seed)
-            randNum = np.random.rand(1)
-            correctNum = 0
-            for loopi in range(len(data)):
-                index = (int(randNum * len(data)) + loopi) % len(data)
-                if sign(np.dot(w, data[index])) !=  label[index]:
-                    w = w + data[index] * label[index]
-                    error_tryW = errorRate(data, label, w)
-                    if (error_tryW < error_w):
-                        error_w = error_tryW
-                        w_pocket = w
-                        correctNum += 1
-
-            if (correctNum == 50):
-                break
-            """
-                    error_new = 0
-                    for loopj in range(len(data)):
-                        if np.dot(new_w, data[loopj]) * label[loopj] <= 0:
-                            error_new += 1
-                    print('i=',loopi,'w = ', w, ',new_w = ', new_w,'error_w=',error_w, 'error_new=',error_new)
-                    if (error_new < error_w):
-                        error_w = error_new
-                        w = new_w
-                        print ('the last errorNum is %d, the current errorNum is %d' % (error_w, error_new))
-                        trainNum += 1
-                        if (trainNum > 50):
-                            IsFinished = True
-                            break
-                        break
-
-            if (True == IsFinished):
-                break
-        trainSum += trainNum
-        print('The %d batchs, train num is %d' % (batchNum, trainNum))
-        """
-    print('The average train num is %f in 2000 batch data' % (trainSum / batchNum))
-    print('The w is', w)
-    return w
 
 def Shuffle1Array(data):
     return np.random.shuffle(data)
@@ -137,35 +100,26 @@ def Shuffle2ArrayMeanwhile(data,label,seed):
     return data,label
 
 def PLA(data,label):
-    """
-       PLA algorithm, this can classify two types.
-    :return:
-       classification standard
-    """
     data = np.insert(data,4, [1],  axis=1)
-    batchNum = 0
-    trainSum = 0
+    trainNum = 0
+    UpdateWSum = 0
     for loop in range(2000):
         w = np.array([.0, .0, .0, .0, .0])
         data,label = Shuffle2ArrayMeanwhile(data,label,loop)
-        batchNum += 1
-        trainNum = 0
+        trainNum += 1
+        updateWCountIn1Train = 0
         while (1):
             errorNum = 0
-            correctNum = 0
             for i in range(len(data)):
-                if  np.dot(w, data[i]) * label[i] <= 0:
+                if  sign(np.dot(w, data[i])) !=  label[i]:
                     w = w + data[i] * label[i]
-                    trainNum += 1
-                    correctNum = 0
+                    updateWCountIn1Train += 1
                     errorNum += 1
-                else:
-                    correctNum += 1
             if 0 == errorNum:
                 break
-        trainSum += trainNum
-        print ('The %d batchs, train num is %d'% (batchNum,trainNum))
-    print ('The average train num is %f in 2000 batch data' % (trainSum / batchNum))
+        UpdateWSum += updateWCountIn1Train
+        print ('The train num is %d , update w count which in 1 train is %d'% (trainNum,updateWCountIn1Train))
+    print ('The average update w num is %f in 2000 batch data' % (UpdateWSum / trainNum))
 
 def Test_Shuffle2ArrayMeanwhile():
     data = np.array([[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11]])
@@ -175,18 +129,53 @@ def Test_Shuffle2ArrayMeanwhile():
         print (data,label)
 
 
+def TrainPacketInQ19(data,label,updateCount=50):
+    """
+        pocket algorithm, this can classify two types.
+    :return:
+        weight about classification
+    """
+    data = np.insert(data, 4, [1], axis=1) # insert x0 column
+    loopCount = 0
+
+    data, label = Shuffle2ArrayMeanwhile(data, label, loop)
+    loopCount += 1
+    seed = 0
+    w = np.array([.0, .0, .0, .0, .0])
+    error_w = errorRateWithW(data,label,w)
+    updateWCount = 0
+    while(1):
+        seed = seed + 1
+        for loopi in range(len(data)):
+            index = GetRandomStartLoc(len(data),seed * len(data) + loopi)
+            if sign(np.dot(w, data[index])) !=  label[index]:
+                w = w + data[index] * label[index]
+                error_tryW = errorRateWithW(data, label, w)
+                updateWCount += 1
+                error_w = error_tryW
+        if (updateWCount > 50):
+            break
+
+    print('The train num is ',loopCount,',errorRate is',error_w,', w_pocket is ',w)
+    return w
 
 if  __name__ == "__main__":
     """
+    # Q16
     PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\plaData.txt'
-    data,label = loadDataInfo(PlaFilePath)
+    data,label = LoadDataInfo(PlaFilePath)
     PLA(data,label)
     """
+    errorRateList = []
+    for loop in range(20):
+        PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\packetTrainData.txt'
+        data,label = LoadDataInfo(PlaFilePath)
+        weight = TrainPacketInQ18(data, label)
+        #weight = TrainPacketInQ19(data, label)
 
-    PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\packetTrainData.txt'
-    data,label = loadDataInfo(PlaFilePath)
-    weight = TrainPacket(data,label)
-
-    PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\packetTestData.txt'
-    data,label = loadDataInfo(PlaFilePath)
-    TestPacket(data,label,weight)
+        PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\packetTestData.txt'
+        data,label = LoadDataInfo(PlaFilePath)
+        error_w = TestPacket(data,label,weight)
+        errorRateList.append(error_w)
+    errorRateArray = np.array(errorRateList)
+    print('The final average error rate is',round(np.average(errorRateArray),4))
