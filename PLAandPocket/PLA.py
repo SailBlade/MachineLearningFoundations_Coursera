@@ -1,5 +1,6 @@
 import numpy as np
-
+from matplotlib.pyplot import *
+from scipy import *
 
 def LoadDataInfo(file):
     data = []
@@ -159,6 +160,41 @@ def TrainPacketInQ19(data,label,updateCount=50):
     print('The train num is ',loopCount,',errorRate is',error_w,', w_pocket is ',w)
     return w
 
+def DisplayPCA(data,label):
+    """
+        这里 x 的维数较高，不方便直接进行可视化。
+        但之前我有上过吴恩达的《Machine Learning》课程，
+        里面介绍了一种叫PCA(主成分分析）的方法，可以用于数据降维，从而实现可视化
+    :return:
+    """
+    # firstly, normalize the data
+
+    x = data[:, 0:4]  # take the input out
+    x_norm = x.copy()  # make sure the base is None
+
+    x_mean = x_norm.mean(axis=0)
+    x_std = x_norm.std(axis=0)
+    x_norm = (x_norm - x_mean) / x_std
+
+    # calculate the covariance matrix
+    x_cov = x_norm.T.dot(x_norm) / 400
+
+    # do SVD
+    U, S, V = np.linalg.svd(x_cov)
+    UReduce = U[:, 0:2]  # take the first two dimensions
+    z = x_norm.dot(UReduce)
+
+    z1 = z[where(label[:] == 1)]
+    z2 = z[where(label[:] == -1)]
+
+    fig = figure()
+    ax = subplot(111)
+    ax.plot(z1[:, 0], z1[:, 1], '*', label='$y = 1$')
+    ax.plot(z2[:, 0], z2[:, 1], 'r*', label='$y = -1$')
+    title('Visualization of Dataset')
+    ax.legend(loc='upper left', fontsize='small')
+    fig.show()
+
 if  __name__ == "__main__":
     """
     # Q16
@@ -166,6 +202,11 @@ if  __name__ == "__main__":
     data,label = LoadDataInfo(PlaFilePath)
     PLA(data,label)
     """
+
+    PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\packetTrainData.txt'
+    data, label = LoadDataInfo(PlaFilePath)
+    DisplayPCA(data,label)
+
     errorRateList = []
     for loop in range(20):
         PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\packetTrainData.txt'
