@@ -85,9 +85,12 @@ def DoQuestion17_method1():
     noiseProbality = 0.2
 
     Sum_Ein = 0
+    Sum_Eout = 0
     for loop in range(LoopNum):
-        Sum_Ein += SearchEinInPositiveAndNegativeRays(dataLen,noiseProbality)
-    print ('Average E_in:',Sum_Ein / LoopNum)
+        E_in,E_out = SearchEinInPositiveAndNegativeRays(dataLen,noiseProbality)
+        Sum_Ein += E_in
+        Sum_Eout += E_out
+    print ('Average E_in:',Sum_Ein / LoopNum,',Average E_out:',Sum_Eout / LoopNum)
 
 
 def SearchEinInPositiveAndNegativeRays(dataLen,noiseProbality):
@@ -101,7 +104,7 @@ def SearchEinInPositiveAndNegativeRays(dataLen,noiseProbality):
 
     Ein = len(s_x)
     LocationOfMinE_in = 0
-    meanE_in = 0
+    signOfMinE_in = -1
     leftSign = -1
     rightSign = 1
     for symbor in range(2):  # 因为是 positive and negative rays 所以需要尝试两次
@@ -127,14 +130,16 @@ def SearchEinInPositiveAndNegativeRays(dataLen,noiseProbality):
             sumError = leftErrorNum + rightErrorNum
             if (sumError < Ein):
                 Ein = sumError
-                LocationOfMinE_in = i
-                if i + 1 >= len(s_x):
-                    lastElement = 1
-                meanE_in = (s_x[i] + s_x[i + 1])/2
+                LocationOfMinE_in = theta
+                signOfMinE_in = leftSign
 
-        e_out = 0.5 + 0.3 * s * (np.abs(theta_best) - 1)
-    print ('ErrorRate: ',Ein/len(s_x),LocationOfMinE_in)
-    return Ein/len(s_x)
+    if LocationOfMinE_in + 1 < len(s_x):
+        bestTheta = (s_x[LocationOfMinE_in] + s_x[LocationOfMinE_in + 1])/2
+    else:
+        bestTheta = 1
+    E_out = 0.5 + 0.3 * signOfMinE_in * (np.abs(bestTheta) - 1)
+    print ('ErrorRate: ',Ein/len(s_x),LocationOfMinE_in,',E_out: ',E_out)
+    return Ein/len(s_x), E_out
 
 def signArray(x):#自定义符号函数，只返回-1，+1
     ret=np.ones(x.shape)
@@ -169,9 +174,10 @@ def DoQuestion17_method2():
         e_in = np.zeros((2, data_size))  # 对每个theta求出一个error_in,第一行是s=1，第2行是s=-1.
         for i in range(len(theta)):
             a1 = y * signArray(x - theta[i])
-            print (a1,np.sum(a1),np.sum(-a1))
+            print ('a1:',a1,',np.sum(a1):',np.sum(a1),',np.sum(-a1):',np.sum(-a1))
             e_in[0][i] = (data_size - np.sum(a1)) / (2 * data_size)  # 数组只有-1和+1，可直接计算出-1所占比例
             e_in[1][i] = (data_size - np.sum(-a1)) / (2 * data_size)
+            print ('E_in[0]:',e_in[0][i],',e_in[1][i]:',e_in[1][i])
         s = 0
         theta_best = 0
         min0, min1 = np.min(e_in[0]), np.min(e_in[1])
@@ -240,7 +246,7 @@ def getData_i(X_train,i):#获取第d维数据
 
 
 def DoQuestion19():
-    PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\decisionTrumpTrainData.txt'
+    PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\homework2\\data\\decisionTrumpTrainData.txt'
     data, label = LoadDataInfo(PlaFilePath)
     e_in = np.zeros(9)
     s = np.zeros(9)
@@ -254,7 +260,7 @@ def DoQuestion19():
     theta_best = theta[dimension]
     s_best = s[dimension]
 
-    PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\decisionTrumpTestData.txt'
+    PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\homework2\\data\\decisionTrumpTestData.txt'
     data, label = LoadDataInfo(PlaFilePath)
     test_len = len(label)
     X_i = getData_i(data, dimension)
@@ -267,6 +273,6 @@ if  __name__ == "__main__":
     #DoQuestion4And5()
 
     #DoQuestion17_method1()
-    #DoQuestion17_method2() # 网上提供的另外一种思路
-    DoQuestion19()
+    DoQuestion17_method2() # 网上提供的另外一种思路
+    #DoQuestion19()
     pass
