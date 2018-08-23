@@ -185,5 +185,136 @@ def DoQuestion14and15():
     print ('E_out',e_outOfErr/e_outOfCnt)
 
 
+def DoQuestion18And19():
+    def LoadDataInfo(file):
+        data = []
+        label = []
+        lineNum = 0
+        with open(file) as f:
+            line = f.readline()
+            while line:
+                lineArray = line.split()
+                for i in range(len(lineArray) - 1):
+                    data.append(float(lineArray[i]))
+                label.append(int(lineArray[20]))
+                line = f.readline()
+                lineNum += 1
+        dataArray = np.array(data)
+        dataArray = dataArray.reshape(lineNum, 20)
+
+        labelArray = np.array(label)
+        return dataArray, labelArray
+
+    def sign(a):
+        if a >= 0:
+            return 1
+        elif a < 0:
+            return -1
+
+
+    def sigmoid(x):
+        return 1 / (1 + np.exp(np.multiply(-1,x)))
+
+    def GetGradient(x,y,w):
+        gradient = 0
+        for loop in range(x.shape[0]):
+            gradient += sigmoid(np.multiply(-1 * y[loop] , np.dot(w, x[loop]))) \
+                      * (np.multiply(-1 * y[loop] , x[loop]))
+        gradient = gradient / x.shape[0]
+
+        return gradient
+
+    def FindW(ita,T,x,y,w):
+        for loop in range(T):
+            gradient = GetGradient(x,y,w)
+            w = w - np.multiply(ita,gradient)
+        print('gradient:',GetGradient(x,y,w))
+        return w
+
+
+    TrainFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\homework3\\data\\question18_Train.txt'
+    TestFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\homework3\\data\\question18_Test.txt'
+    data, label = LoadDataInfo(TrainFilePath)
+    print (data.shape,label.shape)
+
+    iTa = 0.01   # 随机梯度步长
+    T   = 2000   # 可能是随机梯度的循环次数 iterations
+    w = np.zeros(20)
+
+    w = FindW(iTa,T,data,label,w)
+
+    data, label = LoadDataInfo(TestFilePath)
+    e_outError = 0
+    e_outCount = 0
+    for loop in range(data.shape[0]):
+        e_outCount += 1
+        if sign(np.dot(w,data[loop])) != label[loop]:  # 不太清楚这里为什么不能用 sigmoid(wx) 而是直接用 sign(wx)
+            e_outError+= 1
+    print ('E_out:',e_outError/e_outCount)
+
+def DoQuestion20():
+    def LoadDataInfo(file):
+        data = []
+        label = []
+        lineNum = 0
+        with open(file) as f:
+            line = f.readline()
+            while line:
+                lineArray = line.split()
+                for i in range(len(lineArray) - 1):
+                    data.append(float(lineArray[i]))
+                label.append(int(lineArray[20]))
+                line = f.readline()
+                lineNum += 1
+        dataArray = np.array(data)
+        dataArray = dataArray.reshape(lineNum, 20)
+
+        labelArray = np.array(label)
+        return dataArray, labelArray
+
+    def sign(a):
+        if a >= 0:
+            return 1
+        elif a < 0:
+            return -1
+
+
+    def sigmoid(x):
+        return 1 / (1 + np.exp(np.multiply(-1,x)))
+
+    def GetGradient(x,y,w):
+        gradient = sigmoid(np.multiply(-1 * y , np.dot(w, x))) \
+                  * (np.multiply(-1 * y , x))
+
+        return gradient
+
+    def FindW(ita,T,x,y,w):
+        gradient = GetGradient(x,y,w)
+        w = w - np.multiply(ita,gradient)
+        print('gradient:',gradient)
+        return w
+
+
+    TrainFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\homework3\\data\\question18_Train.txt'
+    TestFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\homework3\\data\\question18_Test.txt'
+    data, label = LoadDataInfo(TrainFilePath)
+    print (data.shape,label.shape)
+
+    iTa = 0.001   # 随机梯度步长
+    T   = 2000   # 可能是随机梯度的循环次数 iterations
+    w = np.zeros(20)
+
+    for loop in range(T):
+        w = FindW(iTa,T,data[loop % data.shape[0]],label[loop % data.shape[0]],w)
+
+    data, label = LoadDataInfo(TestFilePath)
+    e_outError = 0
+    e_outCount = 0
+    for loop in range(data.shape[0]):
+        e_outCount += 1
+        if sign(np.dot(w,data[loop])) != label[loop]:  # 不太清楚这里为什么不能用 sigmoid(wx) 而是直接用 sign(wx)
+            e_outError+= 1
+    print ('E_out:',e_outError/e_outCount)
+
 if  __name__ == "__main__":
-    DoQuestion13()
+    DoQuestion20()
