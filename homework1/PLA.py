@@ -206,18 +206,18 @@ if  __name__ == "__main__":
     PLA(data,label)
     """
 
-    PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\packetTrainData.txt'
+    PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\homework1\\data\\packetTrainData.txt'
     data, label = LoadDataInfo(PlaFilePath)
     DisplayPCA(data,label)
 
     errorRateList = []
     for loop in range(20):
-        PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\packetTrainData.txt'
+        PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\homework1\\data\\packetTrainData.txt'
         data,label = LoadDataInfo(PlaFilePath)
         weight = TrainPacketInQ18(data, label)
         #weight = TrainPacketInQ19(data, label)
 
-        PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\PLAandPocket\\data\\packetTestData.txt'
+        PlaFilePath = 'G:\\林轩田教程\\MachineLearningFoundations\\homework1\\data\\packetTestData.txt'
         data,label = LoadDataInfo(PlaFilePath)
         error_w = TestPacket(data,label,weight)
         errorRateList.append(error_w)
