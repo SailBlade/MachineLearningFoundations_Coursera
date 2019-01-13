@@ -20,8 +20,6 @@ def DoAdaptiveBoost():
 
     class AdaptiveBoost():
         def __init__(self):
-            #self._b = np.zeros(1,dtype=np.float64)
-            self._w = np.zeros(2)
             self.YLoc = 2    # Y值的位置
             self._trainLen = 10
             self._trainNum = 20
@@ -89,7 +87,7 @@ def DoAdaptiveBoost():
 
             return np.array(intervalList)
 
-        def __SeekMinError__(self,trainProcSet):
+        def __SeekMinError__(self,trainProcSet,funcMatrix):
             sList = [1, -1]
             global YLoc
             global weightLoc
@@ -148,14 +146,18 @@ def DoAdaptiveBoost():
 
             #print ('***** trainProcSecond ***********')
             print (trainProcSet)
-            return (alpha,minRealError,minS,minTheta,minfeatureIdx)
+
+            element = np.array([(alpha, minRealError, minS, minTheta, minfeatureIdx)])
+            element = np.reshape(element, (1, 5))
+            funcMatrix = np.concatenate((funcMatrix, element), axis=0)
+            return funcMatrix
 
 
-        def __sketchLine__(self,fig,ax,mapInfo,trainProcSet):
-            for i in range(mapInfo.shape[0]):
-                thetaList = mapInfo[i][0] * np.ones(2)
+        def __sketchLine__(self,fig,ax,funcMatrix):
+            for i in range(funcMatrix.shape[0]):
+                thetaList = funcMatrix[i][3] * np.ones(2)
                 Yaxix = np.array([-1, 1])
-                if 0 == mapInfo[i][1]:
+                if 0 == funcMatrix[i][4]:
                     ax.plot(thetaList, Yaxix)
                 else:
                     ax.plot(Yaxix, thetaList)
@@ -188,9 +190,9 @@ def DoAdaptiveBoost():
                 for funLoop in range(funcMatrix.shape[0]):
                     (alpha, s, theta) = funcMatrix[funLoop][0], funcMatrix[funLoop][2], funcMatrix[funLoop][3]
                     if (0 == funcMatrix[funLoop][4]):
-                        g = alpha * s * (self.DataSet[dataLoop][0] - theta)
+                        g = alpha * self.__sign__(s * (self.DataSet[dataLoop][0] - theta))
                     else:
-                        g = alpha * s * (self.DataSet[dataLoop][1] - theta)
+                        g = alpha * self.__sign__(s * (self.DataSet[dataLoop][1] - theta))
                     G += g
                 G /= funcMatrix.shape[0]
                 if (self.DataSet[dataLoop][YLoc] != self.__sign__(G)):
@@ -199,57 +201,32 @@ def DoAdaptiveBoost():
             print ('Train Count:',index,',accurate:',1 - error/self.DataSet.shape[0],'error:',error)
             pass
 
-
-        def __train__(self):
-            # h(x) = s * sign(x - theta)
-            sList = [1,-1]
-
-            #print ('X1',self.X1)
-            #featureX =  np.concatenate((self.X1,self.X2))
-            #featureX = np.reshape(featureX,(2,self.X1.size))
-            #print('FeatureX: ',featureX)
-
-            #fig, ax = plt.subplots(1, 1)
-            #fig, ax = self.__sketchFrame__(fig,ax)
-
-            funcMatrix = np.zeros((1,5))
-
-            mapInfo = np.zeros((1,2))
-            count   = 0
-            loopCount = 0
+        def __addInitWeightColumn__(self):
             weight = np.ones(self.trainSet.shape[0]) / self.trainSet.shape[0]
             trainProcSet = np.column_stack((self.trainSet, weight))
+            return trainProcSet
+
+        def __train__(self):
+
+            funcMatrix = np.zeros((1,5))
+            loopCount = 0
+
+            trainProcSet = self.__addInitWeightColumn__()
 
             for loop in range(self._trainNum):
                 loopCount += 1
                 #self.__genTrainSetWithBootstrapping__(loop)   # 利用Bootstrapping生成训练集 self.trainSet
 
                 print (trainProcSet)
-                (alpha,errorRate,minS,minTheta,featureIdx)= self.__SeekMinError__(trainProcSet)  # 寻找 self.trainSet 中最小Error对应的s，theta
-                element = np.array([(alpha,errorRate,minS,minTheta,featureIdx)])
-                element = np.reshape(element,(1,5))
-                funcMatrix = np.concatenate((funcMatrix,element),axis=0)
+                funcMatrix = self.__SeekMinError__(trainProcSet,funcMatrix)  # 寻找 self.trainSet 中最小Error对应的s，theta
+
                 if 1 == loopCount:
                     funcMatrix = np.delete(funcMatrix, 0, 0)
 
-                '''
-                thetaList = minTheta * np.ones(2)
-                Yaxix = np.array([-1, 1])
-                if 0 ==  featureIdx:
-                    ax.plot(thetaList, Yaxix)
-                else:
-                    ax.plot(Yaxix,thetaList )
-                '''
-                element = np.reshape(np.array([minTheta,featureIdx]),(1,2))
-                mapInfo = np.concatenate((mapInfo,element),axis=0)
                 fig, ax = plt.subplots(1, 1)
                 fig, ax = self.__sketchFrame__(fig, ax, trainProcSet)
-                count += 1
-                if count == 1:
-                    mapInfo = np.delete(mapInfo,0,0)
 
-
-                self.__sketchLine__(fig, ax,mapInfo,trainProcSet)
+                self.__sketchLine__(fig,ax,funcMatrix)
                 self.__checkTrainResult__(funcMatrix,loopCount,trainProcSet)
                 #print('**************    funcMatrix     ***************')
                 #print('alpha    errorRate    minS    minTheta    featureIdx')
@@ -283,7 +260,7 @@ def DoAdaptiveBoost():
                     if (self.X1[loop] == trainProcSet[pointLoop][0]) and (self.X2[loop] == trainProcSet[pointLoop][1]):
                         weight = trainProcSet[pointLoop][weightLoc]
 
-                size = 1000 * weight
+                size = 10000 * pow(weight,2)
                 print (loop,size)
                 if self.Y[loop] == 1:
                     correctListX1.append(self.X1[loop])
