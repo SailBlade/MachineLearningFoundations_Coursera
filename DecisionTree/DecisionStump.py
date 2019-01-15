@@ -21,7 +21,7 @@ def DoAdaptiveBoost():
     class AdaptiveBoost():
         def __init__(self):
             self.YLoc = 2    # Y值的位置
-            self._trainLen = 10
+            self._trainLen = 20
             self._trainNum = 20
 
         def __sign__(self,a):
@@ -40,9 +40,9 @@ def DoAdaptiveBoost():
 
             Y = np.array(Y)
 
-            X1 = np.array([-0.24477302,0.19475279,0.25548862,-0.54018758,0.30140678,-0.34477604,0.13941788,0.16259198,0.26696617,-0.75998417])
-            X2 = np.array([ 0.51412259,0.28742792,0.4249421, 0.36054774,-0.60541032,0.3538119,-0.043742,0.52602336,0.76907062,0.99818954])
-            Y  = np.array([-1,-1,-1,1,1,-1,1,-1,1,1])
+            #X1 = np.array([-0.24477302,0.19475279,0.25548862,-0.54018758,0.30140678,-0.34477604,0.13941788,0.16259198,0.26696617,-0.75998417])
+            #X2 = np.array([ 0.51412259,0.28742792,0.4249421, 0.36054774,-0.60541032,0.3538119,-0.043742,0.52602336,0.76907062,0.99818954])
+            #Y  = np.array([-1,-1,-1,1,1,-1,1,-1,1,1])
             self.X1 = X1
             self.X2 = X2
             self.Y  = Y
@@ -154,6 +154,7 @@ def DoAdaptiveBoost():
 
 
         def __sketchLine__(self,fig,ax,funcMatrix):
+            '''
             for i in range(funcMatrix.shape[0]):
                 thetaList = funcMatrix[i][3] * np.ones(2)
                 Yaxix = np.array([-1, 1])
@@ -161,7 +162,48 @@ def DoAdaptiveBoost():
                     ax.plot(thetaList, Yaxix)
                 else:
                     ax.plot(Yaxix, thetaList)
+            '''
 
+            pointArray1_X1 = np.zeros((1))
+            pointArray1_X2 = np.zeros((1))
+            pointArray2_X1 = np.zeros((1))
+            pointArray2_X2 = np.zeros((1))
+
+            countX1 = 0
+            countX2 = 0
+            for loopX1 in range(100):
+                for loopX2 in range(100):
+                    X1 = loopX1 / 50 - 1.0
+                    X2 = loopX2 / 50 - 1.0
+                    G = 0
+                    for funLoop in range(funcMatrix.shape[0]):
+                        (alpha, s, theta) = funcMatrix[funLoop][0], funcMatrix[funLoop][2], funcMatrix[funLoop][3]
+                        if (0 == funcMatrix[funLoop][4]):
+                            g = alpha * self.__sign__(s * (X1 - theta))
+                        else:
+                            g = alpha * self.__sign__(s * (X2 - theta))
+                        G += g
+
+                    elementX1 = X1
+                    elementX2 = X2
+                    if (1 == self.__sign__(G)):
+                        pointArray1_X1 = np.append(pointArray1_X1, elementX1)
+                        pointArray1_X2 = np.append(pointArray1_X2, elementX2)
+                        countX1 += 1
+                        if (0 == countX1):
+                            pointArray1_X1 = np.delete(pointArray1_X1,0,0)
+                            pointArray1_X2 = np.delete(pointArray1_X2, 0, 0)
+                    else:
+                        pointArray2_X1 = np.append(pointArray2_X1, elementX1)
+                        pointArray2_X2 = np.append(pointArray2_X2, elementX2)
+                        countX2 += 1
+                        if (0 == countX2):
+                            pointArray2_X1 = np.delete(pointArray2_X1,0,0)
+                            pointArray2_X2 = np.delete(pointArray2_X2, 0, 0)
+            Y1 = 100 * np.ones(pointArray1_X1.size)
+            Y2 = 100 * np.ones(pointArray2_X1.size)
+            ax.scatter(pointArray1_X1, pointArray1_X2, Y1, c='gold', marker="o", alpha=0.05)
+            ax.scatter(pointArray2_X1, pointArray2_X2, Y2, c='yellowgreen', marker="x", alpha=0.05)
 
         def __checkTrainResult__(self,funcMatrix,index,trainProcSet):
             '''
@@ -226,12 +268,14 @@ def DoAdaptiveBoost():
                 fig, ax = plt.subplots(1, 1)
                 fig, ax = self.__sketchFrame__(fig, ax, trainProcSet)
 
-                self.__sketchLine__(fig,ax,funcMatrix)
+                if (loop == self._trainNum - 1):
+                    self.__sketchLine__(fig,ax,funcMatrix)
+                    plt.show()
                 self.__checkTrainResult__(funcMatrix,loopCount,trainProcSet)
                 #print('**************    funcMatrix     ***************')
                 #print('alpha    errorRate    minS    minTheta    featureIdx')
                 #print(funcMatrix)
-                plt.show()
+                #plt.show()
                 pass
 
             print ('**************    funcMatrix     ***************')
@@ -260,7 +304,7 @@ def DoAdaptiveBoost():
                     if (self.X1[loop] == trainProcSet[pointLoop][0]) and (self.X2[loop] == trainProcSet[pointLoop][1]):
                         weight = trainProcSet[pointLoop][weightLoc]
 
-                size = 10000 * pow(weight,2)
+                size = 100 #10000 * pow(weight,2)
                 print (loop,size)
                 if self.Y[loop] == 1:
                     correctListX1.append(self.X1[loop])
